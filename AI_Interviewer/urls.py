@@ -17,7 +17,7 @@ urlpatterns = [
     path("auth/register/", views.register_view, name="register"),
     path("auth/profile/", views.user_homepage, name="user_homepage"),
     path("complete-profile/", views.complete_profile, name="complete_profile"),
-
+path('unauthorized-access/', views.unauthorized_access, name='unauthorized_access'),
     # admin
     path('admin-login/', views.admin_login, name='admin_login'),
     path('admin-home/', views.admin_home, name='admin_home'),
