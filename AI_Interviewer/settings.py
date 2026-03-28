@@ -129,6 +129,6 @@ AUTHLIB_OAUTH_CLIENTS = {
     }
 }
 
-KEYCLOAK_SERVER_URL = "http://127.0.0.1:8080"
-KEYCLOAK_REALM = "sso-demo"
+KEYCLOAK_SERVER_URL = os.environ.get("KEYCLOAK_SERVER_URL", "http://127.0.0.1:8080")
+KEYCLOAK_REALM = os.environ.get("KEYCLOAK_REALM", "sso-demo")
 KEYCLOAK_LOGOUT_URL = f"{KEYCLOAK_SERVER_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/logout"
