@@ -1,6 +1,5 @@
 import json
 import re
-import random
 from urllib.parse import urlencode
 from functools import wraps
 import jwt
@@ -21,7 +20,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 
 APP_CLIENT_ID = "app2-ai_interviewer-client"
-APP_REQUIRED_ROLE = "app2_user"
+APP_REQUIRED_ROLE = "app2_user"   
 
 
 llm = ChatGoogleGenerativeAI(
@@ -70,6 +69,17 @@ def require_app_role(view_func):
 
         return view_func(request, *args, **kwargs)
     return wrapper
+
+
+def build_keycloak_logout_url(post_logout_redirect_uri, id_token=None):
+    params = {
+        "post_logout_redirect_uri": post_logout_redirect_uri,
+    }
+
+    if id_token:
+        params["id_token_hint"] = id_token
+
+    return f"{settings.KEYCLOAK_LOGOUT_URL}?{urlencode(params)}"
 
 
 def generate_question(messages):
@@ -131,18 +141,10 @@ def register_view(request):
 
 @never_cache
 def user_login(request):
-    if 'user' in request.session and request.GET.get("reauth") != "1":
+    if 'user' in request.session:
         return redirect('home')
 
     redirect_uri = request.build_absolute_uri('/auth/callback/')
-
-    if request.GET.get("reauth") == "1":
-        return oauth.keycloak.authorize_redirect(
-            request,
-            redirect_uri,
-            prompt="login"
-        )
-
     return oauth.keycloak.authorize_redirect(request, redirect_uri)
 
 
@@ -230,17 +232,11 @@ def user_logout(request):
     request.session.pop('access_token', None)
     request.session.flush()
 
-    redirect_uri = request.build_absolute_uri('/')
-    params = {
-        "post_logout_redirect_uri": redirect_uri,
-    }
+    post_logout_redirect_uri = request.build_absolute_uri('/auth/login/')
 
-    if id_token:
-        params["id_token_hint"] = id_token
-
-    logout_url = (
-        "http://localhost:8080/realms/sso-demo/protocol/openid-connect/logout?"
-        + urlencode(params)
+    logout_url = build_keycloak_logout_url(
+        post_logout_redirect_uri=post_logout_redirect_uri,
+        id_token=id_token
     )
     return redirect(logout_url)
 
@@ -254,18 +250,11 @@ def unauthorized_access(request):
     request.session.pop('access_token', None)
     request.session.flush()
 
-    post_logout_redirect_uri = request.build_absolute_uri('/auth/login/?reauth=1')
+    post_logout_redirect_uri = request.build_absolute_uri('/auth/login/')
 
-    params = {
-        "post_logout_redirect_uri": post_logout_redirect_uri,
-    }
-
-    if id_token:
-        params["id_token_hint"] = id_token
-
-    logout_url = (
-        "http://127.0.0.1:8080/realms/sso-demo/protocol/openid-connect/logout?"
-        + urlencode(params)
+    logout_url = build_keycloak_logout_url(
+        post_logout_redirect_uri=post_logout_redirect_uri,
+        id_token=id_token
     )
     return redirect(logout_url)
 
